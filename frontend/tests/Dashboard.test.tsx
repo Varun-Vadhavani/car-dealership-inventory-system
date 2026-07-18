@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from '../src/pages/Dashboard';
 import * as apiClient from '../src/api/client';
+import { getUserRole } from '../src/utils/auth';
 
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient();
@@ -68,5 +69,30 @@ describe('Dashboard', () => {
   await waitFor(() => {
     expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda', minPrice: '', maxPrice: '' });
   });
+});
+
+vi.mock('../src/utils/auth', () => ({
+  getUserRole: vi.fn(),
+}));
+
+// ...inside the describe block:
+
+it('should show the Add Vehicle form only for admins', async () => {
+  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
+  vi.mocked(getUserRole).mockReturnValue('ADMIN');
+
+  renderWithProviders(<Dashboard />);
+
+  expect(await screen.findByRole('button', { name: /add vehicle/i })).toBeInTheDocument();
+});
+
+it('should NOT show the Add Vehicle form for regular users', async () => {
+  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
+  vi.mocked(getUserRole).mockReturnValue('USER');
+
+  renderWithProviders(<Dashboard />);
+
+  await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: /add vehicle/i })).not.toBeInTheDocument();
 });
 });

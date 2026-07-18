@@ -86,3 +86,25 @@ export async function searchVehicles(filters: SearchFilters): Promise<Vehicle[]>
   if (!response.ok) throw new Error('Search failed');
   return response.json();
 }
+
+export interface CreateVehicleInput {
+  make: string;
+  model: string;
+  year: number;
+  category: string;
+  price: number;
+  quantity: number;
+}
+
+export async function createVehicleRequest(data: CreateVehicleInput): Promise<Vehicle> {
+  const response = await fetch(`${API_BASE_URL}/vehicles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const body = await response.json();
+    throw new Error(body.error || 'Failed to create vehicle');
+  }
+  return response.json();
+}
