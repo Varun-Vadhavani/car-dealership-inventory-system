@@ -190,4 +190,78 @@ describe('DELETE /api/vehicles/:id', () => {
     expect(response.status).toBe(403);
   });
 });
+
+describe('POST /api/vehicles/:id/purchase', () => {
+  afterEach(async () => {
+    await prisma.vehicle.deleteMany();
+  });
+
+  it('should decrement quantity by 1 and return 200', async () => {
+    const token = generateToken();
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 5 });
+
+    const response = await request(app)
+      .post(`/api/vehicles/${created.body.id}/purchase`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.quantity).toBe(4);
+  });
+
+  it('should return 400 when quantity is already 0', async () => {
+    const token = generateToken();
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 0 });
+
+    const response = await request(app)
+      .post(`/api/vehicles/${created.body.id}/purchase`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+  });
+});
+
+describe('POST /api/vehicles/:id/restock', () => {
+  afterEach(async () => {
+    await prisma.vehicle.deleteMany();
+  });
+
+  it('should increment quantity and return 200 when admin', async () => {
+    const adminToken = generateToken('ADMIN');
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 5 });
+
+    const response = await request(app)
+      .post(`/api/vehicles/${created.body.id}/restock`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ amount: 10 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.quantity).toBe(15);
+  });
+
+  it('should return 403 when a non-admin tries to restock', async () => {
+    const adminToken = generateToken('ADMIN');
+    const userToken = generateToken('USER');
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 5 });
+
+    const response = await request(app)
+      .post(`/api/vehicles/${created.body.id}/restock`)
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ amount: 5 });
+
+    expect(response.status).toBe(403);
+  });
+});
+
 });
