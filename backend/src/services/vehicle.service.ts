@@ -85,3 +85,45 @@ export async function deleteVehicle(id: string) {
   await prisma.vehicle.delete({ where: { id } });
   return true;
 }
+
+// Atomically decrements quantity by 1, but ONLY if quantity is
+// currently > 0 — the check and the write happen as one database
+// operation, so two simultaneous purchase requests on the last unit
+// can't both "pass" a check before either writes (the race condition
+// a naive read-then-write approach would have).
+//
+// updateMany returns a count of affected rows rather than the row
+// itself, so a count of 0 tells us the where clause didn't match
+// (either the vehicle doesn't exist, or quantity was already 0) —
+// we then re-fetch to distinguish those two cases for the response.
+export async function purchaseVehicle(id: string) {
+  const result = await prisma.vehicle.updateMany({
+    where: { id, quantity: { gt: 0 } },
+    data: { quantity: { decrement: 1 } },
+  });
+
+  if (result.count === 0) {
+    const existing = await prisma.vehicle.findUnique({ where: { id } });
+    if (!existing) {
+      return { error: 'not_found' as const };
+    }
+    return { error: 'out_of_stock' as const };
+  }
+
+  const updated = await prisma.vehicle.findUnique({ where: { id } });
+  return { vehicle: updated };
+}
+
+// Atomically increments quantity by the given amount. No race
+// condition risk here since there's no "reject if" condition —
+// increment is always safe regardless of current value.
+export async function restockVehicle(id: string, amount: number) {
+  const existing = await prisma.vehicle.findUnique({ where: { id } });
+  if (!existing) {
+    return null;
+  }
+  return prisma.vehicle.update({
+    where: { id },
+    data: { quantity: { increment: amount } },
+  });
+}
