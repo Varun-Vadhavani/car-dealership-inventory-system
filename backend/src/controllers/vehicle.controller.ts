@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createVehicle } from '../services/vehicle.service';
+import { createVehicle, findVehicles } from '../services/vehicle.service';
 
 export async function create(req: Request, res: Response) {
   const { make, model, year, category, price, quantity } = req.body;
@@ -21,4 +21,25 @@ export async function create(req: Request, res: Response) {
     }
     return res.status(500).json({ error: 'Something went wrong' });
   }
+}
+
+export async function list(req: Request, res: Response) {
+  const vehicles = await findVehicles();
+  return res.status(200).json(vehicles);
+}
+
+export async function search(req: Request, res: Response) {
+  const { make, model, category, minPrice, maxPrice } = req.query;
+
+  // Query params always arrive as strings (or undefined) — convert
+  // numeric ones explicitly before passing to the service.
+  const vehicles = await findVehicles({
+    make: make as string | undefined,
+    model: model as string | undefined,
+    category: category as string | undefined,
+    minPrice: minPrice ? Number(minPrice) : undefined,
+    maxPrice: maxPrice ? Number(maxPrice) : undefined,
+  });
+
+  return res.status(200).json(vehicles);
 }
