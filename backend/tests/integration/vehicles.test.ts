@@ -123,4 +123,71 @@ describe('GET /api/vehicles/search', () => {
     expect(response.body[0].make).toBe('Ford');
   });
 });
+
+describe('PUT /api/vehicles/:id', () => {
+  afterEach(async () => {
+    await prisma.vehicle.deleteMany();
+  });
+
+  it('should update a vehicle and return 200', async () => {
+    const token = generateToken();
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 5 });
+
+    const response = await request(app)
+      .put(`/api/vehicles/${created.body.id}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ price: 22999.99 });
+
+    expect(response.status).toBe(200);
+    expect(response.body.price).toBe('22999.99');
+  });
+
+  it('should return 404 for a non-existent vehicle', async () => {
+    const token = generateToken();
+    const response = await request(app)
+      .put('/api/vehicles/00000000-0000-0000-0000-000000000000')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ price: 22999.99 });
+
+    expect(response.status).toBe(404);
+  });
+});
+
+describe('DELETE /api/vehicles/:id', () => {
+  afterEach(async () => {
+    await prisma.vehicle.deleteMany();
+  });
+
+  it('should delete a vehicle and return 204 when admin', async () => {
+    const adminToken = generateToken('ADMIN');
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 5 });
+
+    const response = await request(app)
+      .delete(`/api/vehicles/${created.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(response.status).toBe(204);
+  });
+
+  it('should return 403 when a non-admin tries to delete', async () => {
+    const adminToken = generateToken('ADMIN');
+    const userToken = generateToken('USER');
+    const created = await request(app)
+      .post('/api/vehicles')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: 24999.99, quantity: 5 });
+
+    const response = await request(app)
+      .delete(`/api/vehicles/${created.body.id}`)
+      .set('Authorization', `Bearer ${userToken}`);
+
+    expect(response.status).toBe(403);
+  });
+});
 });
