@@ -46,3 +46,42 @@ export async function findVehicles(filters: SearchFilters = {}) {
     },
   });
 }
+
+interface UpdateVehicleInput {
+  make?: string;
+  model?: string;
+  year?: number;
+  category?: string;
+  price?: number;
+  quantity?: number;
+}
+
+// Partial update — only fields present in `data` are changed.
+// Returns null if no vehicle with this id exists, rather than
+// letting Prisma throw, so the controller can cleanly map that to 404.
+
+// Shared lookup used by both update and delete, so the
+// "does this vehicle exist" check lives in exactly one place.
+async function findVehicleById(id: string) {
+  return prisma.vehicle.findUnique({ where: { id } });
+}
+
+export async function updateVehicle(id: string, data: UpdateVehicleInput) {
+  const existing = await findVehicleById(id);
+  if (!existing) {
+    return null;
+  }
+  return prisma.vehicle.update({ where: { id }, data });
+}
+  
+// Returns true if a vehicle was deleted, false if it didn't exist.
+// Same "check first" pattern as update, for the same reason:
+// a clean, explicit signal for the controller rather than a caught exception.
+export async function deleteVehicle(id: string) {
+  const existing = await findVehicleById(id);
+  if (!existing) {
+    return false;
+  }
+  await prisma.vehicle.delete({ where: { id } });
+  return true;
+}

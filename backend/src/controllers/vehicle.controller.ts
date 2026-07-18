@@ -1,7 +1,7 @@
-import { Request, Response } from 'express';
-import { createVehicle, findVehicles } from '../services/vehicle.service';
+import { NextFunction, Request, Response } from 'express';
+import { createVehicle, findVehicles, updateVehicle, deleteVehicle } from '../services/vehicle.service';
 
-export async function create(req: Request, res: Response) {
+export async function create(req: Request, res: Response, next: NextFunction) {
   const { make, model, year, category, price, quantity } = req.body;
 
   // Basic presence validation. A future refactor could replace this
@@ -14,12 +14,8 @@ export async function create(req: Request, res: Response) {
   try {
     const vehicle = await createVehicle({ make, model, year, category, price, quantity });
     return res.status(201).json(vehicle);
-  } catch (error: any) {
-    // P2002 = Prisma's unique constraint violation (duplicate configuration)
-    if (error.code === 'P2002') {
-      return res.status(409).json({ error: 'This vehicle configuration already exists' });
-    }
-    return res.status(500).json({ error: 'Something went wrong' });
+  } catch (error) {
+      next(error);
   }
 }
 
@@ -42,4 +38,25 @@ export async function search(req: Request, res: Response) {
   });
 
   return res.status(200).json(vehicles);
+}
+
+export async function update(req: Request, res: Response) {
+  const { id } = req.params;
+  const updated = await updateVehicle(id, req.body);
+
+  if (!updated) {
+    return res.status(404).json({ error: 'Vehicle not found' });
+  }
+  return res.status(200).json(updated);
+}
+
+export async function remove(req: Request, res: Response) {
+  const { id } = req.params;
+  const deleted = await deleteVehicle(id);
+
+  if (!deleted) {
+    return res.status(404).json({ error: 'Vehicle not found' });
+  }
+  // 204 No Content — successful deletion, nothing meaningful to return
+  return res.status(204).send();
 }
