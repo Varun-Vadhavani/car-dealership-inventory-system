@@ -30,3 +30,28 @@ export async function registerRequest(email: string, password: string) {
 
   return response.json(); // { id, email, role, createdAt }
 }
+
+export interface Vehicle {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  category: string;
+  price: string; // Decimal serializes as a string over JSON, per backend
+  quantity: number;
+}
+
+function authHeaders() {
+  const token = localStorage.getItem('token');
+  return { Authorization: `Bearer ${token}` };
+}
+
+export async function fetchVehicles(): Promise<Vehicle[]> {
+  const response = await fetch(`${API_BASE_URL}/vehicles`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch vehicles');
+  }
+  return response.json();
+}
