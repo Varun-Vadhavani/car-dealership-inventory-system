@@ -53,4 +53,20 @@ describe('Dashboard', () => {
     expect(purchaseSpy).toHaveBeenCalledWith('1');
   });
 });
+
+  it('should call searchVehicles with the make filter when the search form is submitted', async () => {
+  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
+  const searchSpy = vi.spyOn(apiClient, 'searchVehicles').mockResolvedValue([
+    { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
+  ]);
+
+  renderWithProviders(<Dashboard />);
+
+  fireEvent.change(await screen.findByLabelText(/search by make/i), { target: { value: 'Honda' } });
+  fireEvent.click(screen.getByRole('button', { name: /search/i }));
+
+  await waitFor(() => {
+    expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda', minPrice: '', maxPrice: '' });
+  });
+});
 });

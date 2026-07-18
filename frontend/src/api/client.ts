@@ -67,3 +67,22 @@ export async function purchaseVehicle(id: string): Promise<Vehicle> {
   }
   return response.json();
 }
+
+export interface SearchFilters {
+  make?: string;
+  minPrice?: string;
+  maxPrice?: string;
+}
+
+export async function searchVehicles(filters: SearchFilters): Promise<Vehicle[]> {
+  const params = new URLSearchParams();
+  if (filters.make) params.set('make', filters.make);
+  if (filters.minPrice) params.set('minPrice', filters.minPrice);
+  if (filters.maxPrice) params.set('maxPrice', filters.maxPrice);
+
+  const response = await fetch(`${API_BASE_URL}/vehicles/search?${params}`, {
+    headers: authHeaders(),
+  });
+  if (!response.ok) throw new Error('Search failed');
+  return response.json();
+}
