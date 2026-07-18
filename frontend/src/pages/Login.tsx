@@ -1,25 +1,41 @@
 import { useState, FormEvent } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { loginRequest } from '../api/client';
 
 export default function Login() {
-  // Controlled inputs — React owns the input value, not the DOM.
-  // Standard pattern for forms where you need the value on submit
-  // (rather than reading it from the DOM at submit time).
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [validationError, setValidationError] = useState('');
+
+  // useMutation wraps any "write" operation (as opposed to useQuery,
+  // which is for reads/fetching). It gives us loading/error/success
+  // states for free, instead of hand-rolling them with useState.
+  const mutation = useMutation({
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      loginRequest(email, password),
+    onSuccess: (data) => {
+      // Storing the raw JWT string under a known key — every
+      // subsequent authenticated request will read it back out
+      // of here to attach as the Authorization header.
+      localStorage.setItem('token', data.token);
+    },
+  });
 
   function handleSubmit(e: FormEvent) {
-    e.preventDefault(); // stop the browser's default full-page-reload form submission
+    e.preventDefault();
 
     if (!email || !password) {
-      setError('Email and password are required');
+      setValidationError('Email and password are required');
       return;
     }
 
-    setError('');
-    // API call wired up next — intentionally left as a stub for now,
-    // since this test only covers client-side validation.
+    setValidationError('');
+    mutation.mutate({ email, password });
   }
+
+  // mutation.error is whatever loginRequest threw — an Error object
+  // whose .message is the backend's error text ("Invalid credentials").
+  const apiError = mutation.error instanceof Error ? mutation.error.message : '';
 
   return (
     <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-16 flex flex-col gap-4">
@@ -51,10 +67,16 @@ export default function Login() {
         />
       </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {(validationError || apiError) && (
+        <p className="text-red-600 text-sm">{validationError || apiError}</p>
+      )}
 
-      <button type="submit" className="rounded bg-blue-600 text-white py-2 font-medium">
-        Log in
+      <button
+        type="submit"
+        disabled={mutation.isPending}
+        className="rounded bg-blue-600 text-white py-2 font-medium disabled:opacity-50"
+      >
+        {mutation.isPending ? 'Logging in...' : 'Log in'}
       </button>
     </form>
   );
