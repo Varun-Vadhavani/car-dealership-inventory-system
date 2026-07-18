@@ -1,6 +1,6 @@
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchVehicles, purchaseVehicle, searchVehicles, createVehicleRequest, SearchFilters } from '../api/client';
+import { fetchVehicles, purchaseVehicle, searchVehicles, createVehicleRequest, type SearchFilters } from '../api/client';
 import { getUserRole } from '../utils/auth';
 
 export default function Dashboard() {
