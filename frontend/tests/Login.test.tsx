@@ -2,6 +2,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import Login from '../src/pages/Login';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as apiClient from '../src/api/client';
@@ -35,7 +36,11 @@ describe('Login page', () => {
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient();
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        {ui}
+      </MemoryRouter>
+    </QueryClientProvider>
   );
 }
 

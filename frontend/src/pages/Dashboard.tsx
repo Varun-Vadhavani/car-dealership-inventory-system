@@ -1,7 +1,9 @@
-import { useQuery } from '@tanstack/react-query';
-import { fetchVehicles } from '../api/client';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { fetchVehicles, purchaseVehicle } from '../api/client';
 
 export default function Dashboard() {
+  const queryClient = useQueryClient();
+
   // useQuery: declarative "give me this data" — React Query handles
   // the fetch on mount, caching, loading/error states, and refetching,
   // without us manually managing useEffect + useState for any of it.
@@ -9,6 +11,15 @@ export default function Dashboard() {
     queryKey: ['vehicles'],
     queryFn: fetchVehicles,
   });
+
+  const purchaseMutation = useMutation({
+    mutationFn: (id: string) => purchaseVehicle(id),
+    onSuccess: () => {
+      // Refresh the list after a successful purchase
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+    },
+  });
+
 
   if (isLoading) return <p className="text-center mt-8">Loading vehicles...</p>;
   if (error) return <p className="text-center mt-8 text-red-600">Failed to load vehicles.</p>;
@@ -24,10 +35,11 @@ export default function Dashboard() {
           <p className="font-medium">${vehicle.price}</p>
           <p className="text-sm">In stock: {vehicle.quantity}</p>
           <button
-            disabled={vehicle.quantity === 0}
+            onClick={() => purchaseMutation.mutate(vehicle.id)}
+            disabled={vehicle.quantity === 0 || purchaseMutation.isPending}
             className="rounded bg-blue-600 text-white py-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Purchase
+            {purchaseMutation.isPending ? 'Purchasing...' : 'Purchase'}
           </button>
         </div>
       ))}

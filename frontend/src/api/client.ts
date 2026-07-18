@@ -55,3 +55,15 @@ export async function fetchVehicles(): Promise<Vehicle[]> {
   }
   return response.json();
 }
+
+export async function purchaseVehicle(id: string): Promise<Vehicle> {
+  const response = await fetch(`${API_BASE_URL}/vehicles/${id}/purchase`, {
+    method: 'POST',
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    const body = await response.json();
+    throw new Error(body.error || 'Purchase failed');
+  }
+  return response.json();
+}

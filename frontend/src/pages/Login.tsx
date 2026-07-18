@@ -1,8 +1,10 @@
 import { useState, FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { loginRequest } from '../api/client';
 
 export default function Login() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [validationError, setValidationError] = useState('');
@@ -18,6 +20,7 @@ export default function Login() {
       // subsequent authenticated request will read it back out
       // of here to attach as the Authorization header.
       localStorage.setItem('token', data.token);
+      navigate('/dashboard');
     },
   });
 

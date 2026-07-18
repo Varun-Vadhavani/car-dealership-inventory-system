@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Dashboard from '../src/pages/Dashboard';
 import * as apiClient from '../src/api/client';
@@ -35,4 +35,22 @@ describe('Dashboard', () => {
       expect(screen.getByRole('button', { name: /purchase/i })).toBeDisabled();
     });
   });
+
+  it('should call purchaseVehicle when the purchase button is clicked', async () => {
+  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([
+    { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
+  ]);
+  const purchaseSpy = vi.spyOn(apiClient, 'purchaseVehicle').mockResolvedValue(
+    { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 4 }
+  );
+
+  renderWithProviders(<Dashboard />);
+
+  const button = await screen.findByRole('button', { name: /purchase/i });
+  fireEvent.click(button);
+
+  await waitFor(() => {
+    expect(purchaseSpy).toHaveBeenCalledWith('1');
+  });
+});
 });
