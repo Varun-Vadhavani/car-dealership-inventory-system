@@ -34,7 +34,7 @@ export async function loginUser(email: string, password: string) {
   // Payload kept minimal and non-sensitive: just enough to identify
   // the user and check permissions later via auth middleware.
   const token = jwt.sign(
-    { userId: user.id, role: user.role },
+    { userId: user.id, email: user.email, role: user.role },
     process.env.JWT_SECRET as string,
     { expiresIn: '1h' } // short-lived token; forces re-login after expiry
   );

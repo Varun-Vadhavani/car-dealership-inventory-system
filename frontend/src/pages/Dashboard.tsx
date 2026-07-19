@@ -14,28 +14,24 @@ import {
 import { getUserRole } from '../utils/auth';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import VehicleCard from '../components/VehicleCard';
+import VehicleSkeleton from '../components/VehicleSkeleton';
+import EmptyInventoryState from '../components/EmptyInventoryState';
 import VehicleDetailsModal from '../components/VehicleDetailsModal';
 import {
   Search,
   Plus,
-  Tag,
   DollarSign,
   Package,
   Car,
-  ShoppingCart,
   AlertCircle,
   Pencil,
-  Trash2,
   X,
   TrendingUp,
   Sparkles,
   Layers,
-  Eye,
   ShieldAlert,
-  SlidersHorizontal,
 } from 'lucide-react';
-
-const CATEGORY_PILLS = ['ALL', 'Sedan', 'SUV', 'Truck', 'Coupe', 'Luxury'];
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
@@ -74,6 +70,7 @@ export default function Dashboard() {
   const [newCategory, setNewCategory] = useState('');
   const [newPrice, setNewPrice] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
   const [addError, setAddError] = useState('');
 
   // Edit Vehicle State
@@ -84,16 +81,12 @@ export default function Dashboard() {
   const [editCategory, setEditCategory] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editQuantity, setEditQuantity] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
   const [editError, setEditError] = useState('');
 
   const { data: vehicles, isLoading, error } = useQuery({
     queryKey: ['vehicles', activeFilters],
     queryFn: () => (activeFilters ? searchVehicles(activeFilters) : fetchVehicles()),
-  });
-
-  const purchaseMutation = useMutation({
-    mutationFn: (id: string) => purchaseVehicle(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
   });
 
   const restockMutation = useMutation({
@@ -137,6 +130,7 @@ export default function Dashboard() {
       setNewCategory('');
       setNewPrice('');
       setNewQuantity('');
+      setNewImageUrl('');
       setAddError('');
       setShowAddForm(false);
       showToast('New vehicle added to inventory!', 'success');
@@ -153,15 +147,6 @@ export default function Dashboard() {
     setActiveFilters(Object.keys(filters).length > 0 ? filters : null);
   }
 
-  function handleCategoryPillClick(category: string) {
-    setSelectedCategory(category);
-    if (category === 'ALL') {
-      setMake('');
-    } else {
-      setMake(category);
-    }
-  }
-
   function handleAddVehicle(e: FormEvent) {
     e.preventDefault();
     createMutation.mutate({
@@ -171,11 +156,11 @@ export default function Dashboard() {
       category: newCategory,
       price: Number(newPrice),
       quantity: Number(newQuantity),
+      imageUrl: newImageUrl || undefined,
     });
   }
 
-  function handleRestock(id: string) {
-    const amount = restockAmounts[id] ?? 1;
+  function handleRestock(id: string, amount: number) {
     if (amount > 0) {
       restockMutation.mutate({ id, amount });
     }
@@ -194,6 +179,7 @@ export default function Dashboard() {
     setEditCategory(vehicle.category);
     setEditPrice(vehicle.price);
     setEditQuantity(String(vehicle.quantity));
+    setEditImageUrl(vehicle.imageUrl || '');
     setEditError('');
   }
 
@@ -209,6 +195,7 @@ export default function Dashboard() {
         category: editCategory,
         price: Number(editPrice),
         quantity: Number(editQuantity),
+        imageUrl: editImageUrl || undefined,
       },
     });
   }
@@ -224,7 +211,7 @@ export default function Dashboard() {
   const totalUnits = vehicles?.reduce((sum, v) => sum + v.quantity, 0) || 0;
   const alertCount = vehicles?.filter((v) => v.quantity <= 3).length || 0;
 
-  const displayedVehicles = vehicles;
+  const hasFilters = Boolean(make || minPrice || maxPrice);
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -232,8 +219,8 @@ export default function Dashboard() {
       {/* 1. Admin Analytics Banner (Admin Exclusive) */}
       {isAdmin && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-xl">
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-brand-500/10 text-brand-600 dark:text-brand-400 rounded-2xl">
               <TrendingUp size={24} />
             </div>
             <div>
@@ -244,8 +231,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-xl">
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-green-500/10 text-green-600 dark:text-green-400 rounded-2xl">
               <Layers size={24} />
             </div>
             <div>
@@ -254,8 +241,8 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-xl">
+          <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-5 rounded-3xl shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-2xl">
               <ShieldAlert size={24} />
             </div>
             <div>
@@ -284,20 +271,16 @@ export default function Dashboard() {
               <p className="text-2xl font-black text-white">{vehicles?.length || 0}</p>
               <p className="text-[10px] text-slate-400 uppercase font-semibold">Available Models</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 text-center">
-              <p className="text-2xl font-black text-brand-400">4.9/5</p>
-              <p className="text-[10px] text-slate-400 uppercase font-semibold">Customer Rating</p>
-            </div>
           </div>
         </div>
       )}
 
-      {/* 3. Search Bar & Top Control Bar */}
+      {/* 3. Search Bar & Active Filter Tag Bar */}
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-4 rounded-3xl shadow-sm">
           <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
             <div className="relative flex-1 sm:flex-none min-w-[260px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 placeholder="Search make, model, year, category..."
                 value={make}
@@ -337,7 +320,7 @@ export default function Dashboard() {
         </div>
 
         {/* Active Filter Tags / Pills (Like in Photo) */}
-        {(make || minPrice || maxPrice) && (
+        {hasFilters && (
           <div className="flex flex-wrap items-center gap-2 px-1 animate-in fade-in duration-200">
             {make && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100/90 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 rounded-full text-xs font-semibold border border-amber-200/80 dark:border-amber-800/60 shadow-xs">
@@ -384,9 +367,9 @@ export default function Dashboard() {
 
       {/* Admin Add Form */}
       {isAdmin && showAddForm && (
-        <form onSubmit={handleAddVehicle} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-brand-100 dark:border-brand-900/50 p-6 rounded-2xl shadow-lg shadow-brand-500/5 animate-in slide-in-from-top-4 fade-in duration-300">
+        <form onSubmit={handleAddVehicle} className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-brand-100 dark:border-brand-900/50 p-6 rounded-3xl shadow-lg shadow-brand-500/5 animate-in slide-in-from-top-4 fade-in duration-300">
           <h2 className="text-xl font-bold mb-5 flex items-center gap-2 text-slate-900 dark:text-white">
-            <Car className="text-brand-500" /> New Vehicle
+            <Car className="text-brand-500" /> New Vehicle Configuration
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             <input placeholder="Make (e.g. Toyota)" value={newMake} onChange={(e) => setNewMake(e.target.value)} className="w-full px-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none dark:text-white" required />
@@ -401,6 +384,7 @@ export default function Dashboard() {
               <Package className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input placeholder="Quantity" type="number" value={newQuantity} onChange={(e) => setNewQuantity(e.target.value)} className="w-full pl-9 pr-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none dark:text-white" required />
             </div>
+            <input placeholder="Image URL (optional)" value={newImageUrl} onChange={(e) => setNewImageUrl(e.target.value)} className="w-full px-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 outline-none dark:text-white text-sm sm:col-span-2 lg:col-span-3" />
           </div>
           {addError && (
             <div className="mb-4 flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-500/10 p-3 rounded-lg text-sm border border-red-100 dark:border-red-500/20">
@@ -456,6 +440,10 @@ export default function Dashboard() {
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Stock Quantity</label>
                 <input type="number" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
               </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Custom Image URL (optional)</label>
+                <input value={editImageUrl} onChange={(e) => setEditImageUrl(e.target.value)} placeholder="https://..." className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" />
+              </div>
             </div>
 
             {editError && (
@@ -482,159 +470,46 @@ export default function Dashboard() {
         onClose={() => setSelectedVehicleForSpecs(null)}
         isAdmin={isAdmin}
         onAddToCart={handleAddToCartWithToast}
-        onRestock={handleRestock}
+        onRestock={(id, amount) => handleRestock(id, amount)}
         isInCart={cartItems.some((item) => item.vehicle.id === selectedVehicleForSpecs?.id)}
       />
 
       {/* Grid Content */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-64 bg-slate-200 dark:bg-slate-800/50 rounded-2xl"></div>
-          ))}
-        </div>
+        <VehicleSkeleton />
       ) : error ? (
-        <div className="text-center py-20 bg-red-50 dark:bg-red-500/10 rounded-2xl border border-red-100 dark:border-red-500/20">
+        <div className="text-center py-20 bg-red-50 dark:bg-red-500/10 rounded-3xl border border-red-100 dark:border-red-500/20">
           <AlertCircle className="mx-auto text-red-500 mb-3" size={32} />
           <p className="text-red-600 dark:text-red-400 font-medium">Failed to load inventory.</p>
         </div>
-      ) : displayedVehicles?.length === 0 ? (
-        <div className="text-center py-20 bg-white/50 dark:bg-slate-900/50 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl">
-          <Car className="mx-auto text-slate-400 mb-3" size={32} />
-          <p className="text-slate-500 dark:text-slate-400">No vehicles found matching your criteria.</p>
-        </div>
+      ) : !vehicles || vehicles.length === 0 ? (
+        <EmptyInventoryState
+          hasFilters={hasFilters}
+          onResetFilters={() => {
+            setMake('');
+            setMinPrice('');
+            setMaxPrice('');
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedVehicles?.map((vehicle) => {
-            const inStock = vehicle.quantity > 0;
-            const isLowStock = inStock && vehicle.quantity <= 3;
-
-            return (
-              <div
-                key={vehicle.id}
-                className="group bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-6 rounded-3xl shadow-lg shadow-slate-200/50 dark:shadow-none hover:shadow-xl hover:shadow-brand-500/10 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full relative overflow-hidden"
-              >
-                {/* Decorative background blob */}
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-500/10 dark:bg-brand-500/5 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-colors pointer-events-none" />
-
-                <div className="flex justify-between items-start mb-4 relative z-10">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h2 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
-                        {vehicle.year} {vehicle.make}
-                      </h2>
-                    </div>
-                    <p className="text-lg text-slate-600 dark:text-slate-300">{vehicle.model}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 rounded-full text-xs font-semibold uppercase tracking-wide">
-                      <Tag size={12} />
-                      {vehicle.category}
-                    </span>
-                    {isAdmin && (
-                      <div className="flex items-center gap-1 ml-1">
-                        <button
-                          onClick={() => handleStartEdit(vehicle)}
-                          className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Edit vehicle"
-                          aria-label={`Edit ${vehicle.make} ${vehicle.model}`}
-                        >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(vehicle.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Delete vehicle"
-                          aria-label={`Delete ${vehicle.make} ${vehicle.model}`}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Card Stock & Specs Trigger Bar */}
-                <div className="mt-auto space-y-4 relative z-10">
-                  {/* Low Stock Warning Pill */}
-                  {isLowStock && (
-                    <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 rounded-xl text-xs font-bold animate-pulse">
-                      <span>🔥 Only {vehicle.quantity} left in stock!</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-between py-3 border-y border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
-                      <Package size={16} className={inStock ? 'text-green-500' : 'text-red-500'} />
-                      <span
-                        className={
-                          inStock ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-red-500 font-medium'
-                        }
-                      >
-                        {inStock ? `${vehicle.quantity} in stock` : 'Out of stock'}
-                      </span>
-                    </div>
-                    <div className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-                      ${vehicle.price}
-                    </div>
-                  </div>
-
-                  {/* View Specs Trigger Button */}
-                  <button
-                    onClick={() => setSelectedVehicleForSpecs(vehicle)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold transition-colors"
-                  >
-                    <Eye size={14} /> View Specifications & Features
-                  </button>
-
-                  {/* Admin Restock Section */}
-                  {isAdmin && (
-                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-                      <input
-                        type="number"
-                        min="1"
-                        placeholder="Qty"
-                        value={restockAmounts[vehicle.id] ?? 1}
-                        onChange={(e) =>
-                          setRestockAmounts({ ...restockAmounts, [vehicle.id]: Number(e.target.value) })
-                        }
-                        className="w-16 px-2 py-1.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white text-center outline-none focus:ring-1 focus:ring-brand-500"
-                      />
-                      <button
-                        onClick={() => handleRestock(vehicle.id)}
-                        disabled={restockMutation.isPending}
-                        className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
-                      >
-                        <Plus size={14} />
-                        Add Stock
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Customer Add to Cart */}
-                  {!isAdmin && (
-                    <button
-                      onClick={() => handleAddToCartWithToast(vehicle)}
-                      disabled={!inStock}
-                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-white bg-slate-900 hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-500 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 transition-all duration-300 shadow-md"
-                    >
-                      {inStock ? (
-                        <>
-                          <ShoppingCart size={18} />
-                          {cartItems.some((item) => item.vehicle.id === vehicle.id)
-                            ? 'Add More to Cart'
-                            : 'Add to Cart'}
-                        </>
-                      ) : (
-                        'Sold Out'
-                      )}
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {vehicles.map((vehicle) => (
+            <VehicleCard
+              key={vehicle.id}
+              vehicle={vehicle}
+              isAdmin={isAdmin}
+              isInCart={cartItems.some((item) => item.vehicle.id === vehicle.id)}
+              onViewSpecs={(v) => setSelectedVehicleForSpecs(v)}
+              onAddToCart={handleAddToCartWithToast}
+              onStartEdit={handleStartEdit}
+              onDelete={handleDelete}
+              onRestock={handleRestock}
+              restockAmount={restockAmounts[vehicle.id] ?? 1}
+              onRestockAmountChange={(amt) =>
+                setRestockAmounts((prev) => ({ ...prev, [vehicle.id]: amt }))
+              }
+            />
+          ))}
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom';
-import { Moon, Sun, CarFront, LogOut, ShoppingBag } from 'lucide-react';
+import { Moon, Sun, CarFront, LogOut, ShoppingBag, User } from 'lucide-react';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -8,7 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Cart from './pages/Cart';
 import { CartProvider, useCart } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
-import { getUserRole } from './utils/auth';
+import { getUserRole, getUserEmail } from './utils/auth';
 
 function NavbarContent({ isDarkMode, setIsDarkMode, handleLogout, showNavButtons }: {
   isDarkMode: boolean;
@@ -18,6 +18,7 @@ function NavbarContent({ isDarkMode, setIsDarkMode, handleLogout, showNavButtons
 }) {
   const { totalCount } = useCart();
   const isAdmin = getUserRole() === 'ADMIN';
+  const userEmail = getUserEmail();
 
   return (
     <nav className="sticky top-0 z-50 w-full backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 shadow-sm">
@@ -58,6 +59,16 @@ function NavbarContent({ isDarkMode, setIsDarkMode, handleLogout, showNavButtons
                     )}
                   </Link>
                 )}
+
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700/60">
+                  <User size={14} className="text-brand-500 shrink-0" />
+                  <span className="max-w-[140px] sm:max-w-none truncate">Varun</span>
+                  {isAdmin && (
+                    <span className="px-2 py-0.5 bg-brand-600 text-white rounded-md text-[10px] font-black tracking-wider uppercase shadow-xs">
+                      Admin
+                    </span>
+                  )}
+                </div>
 
                 <button
                   onClick={handleLogout}

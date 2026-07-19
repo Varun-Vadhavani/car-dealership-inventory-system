@@ -39,6 +39,7 @@ export interface Vehicle {
   category: string;
   price: string; // Decimal serializes as a string over JSON, per backend
   quantity: number;
+  imageUrl?: string;
 }
 
 function authHeaders() {
@@ -94,6 +95,7 @@ export interface CreateVehicleInput {
   category: string;
   price: number;
   quantity: number;
+  imageUrl?: string;
 }
 
 export async function createVehicleRequest(data: CreateVehicleInput): Promise<Vehicle> {

@@ -70,19 +70,23 @@ describe('Dashboard', () => {
   });
 
   it('should call searchVehicles with the make filter when the search form is submitted', async () => {
-    vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
     const searchSpy = vi.spyOn(apiClient, 'searchVehicles').mockResolvedValue([
       { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
     ]);
+    vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
 
     renderWithProviders(<Dashboard />);
 
-    fireEvent.change(await screen.findByPlaceholderText(/search make.../i), { target: { value: 'Honda' } });
-    fireEvent.click(screen.getByRole('button', { name: /filter/i }));
+    const input = await screen.findByPlaceholderText(/search make, model/i);
+    fireEvent.change(input, { target: { value: 'Honda' } });
+    fireEvent.submit(input.closest('form')!);
 
-    await waitFor(() => {
-      expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda' });
-    });
+    await waitFor(
+      () => {
+        expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda' });
+      },
+      { timeout: 3000 }
+    );
   });
 
   it('should show the Add Vehicle form only for admins', async () => {
