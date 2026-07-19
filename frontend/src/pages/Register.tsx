@@ -7,6 +7,7 @@ import { Mail, Lock, UserPlus, AlertCircle } from 'lucide-react';
 export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [validationError, setValidationError] = useState('');
   const navigate = useNavigate();
 
@@ -18,8 +19,12 @@ export default function Register() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!email || !password) {
-      setValidationError('Email and password are required');
+    if (!email || !password || !confirmPassword) {
+      setValidationError('All fields are required');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setValidationError('Passwords do not match');
       return;
     }
     setValidationError('');
@@ -68,6 +73,21 @@ export default function Register() {
               placeholder="Create a password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
+            />
+          </div>
+
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-500 transition-colors">
+              <Lock size={18} />
+            </div>
+            <input
+              id="confirmPassword"
+              type="password"
+              aria-label="Confirm Password"
+              placeholder="Confirm password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
             />
           </div>

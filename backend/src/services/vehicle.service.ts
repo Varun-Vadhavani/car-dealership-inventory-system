@@ -36,9 +36,9 @@ export async function findVehicles(filters: SearchFilters = {}) {
       // Each condition is only included if the corresponding filter
       // was actually provided — undefined fields are ignored by Prisma,
       // so omitted filters simply don't narrow the query.
-      make: make ? { equals: make, mode: 'insensitive' } : undefined,
-      model: model ? { equals: model, mode: 'insensitive' } : undefined,
-      category: category ? { equals: category, mode: 'insensitive' } : undefined,
+      make: make ? { contains: make, mode: 'insensitive' } : undefined,
+      model: model ? { contains: model, mode: 'insensitive' } : undefined,
+      category: category ? { contains: category, mode: 'insensitive' } : undefined,
       price: {
         gte: minPrice ?? undefined,
         lte: maxPrice ?? undefined,

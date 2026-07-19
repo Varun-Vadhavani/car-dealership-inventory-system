@@ -121,3 +121,30 @@ export async function restockVehicle(id: string, amount: number): Promise<Vehicl
   }
   return response.json();
 }
+
+export async function deleteVehicleRequest(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.error || 'Failed to delete vehicle');
+  }
+}
+
+export async function updateVehicleRequest(
+  id: string,
+  data: Partial<CreateVehicleInput>
+): Promise<Vehicle> {
+  const response = await fetch(`${API_BASE_URL}/vehicles/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const body = await response.json();
+    throw new Error(body.error || 'Failed to update vehicle');
+  }
+  return response.json();
+}

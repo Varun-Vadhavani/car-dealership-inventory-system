@@ -1,12 +1,14 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchVehicles, purchaseVehicle, searchVehicles, createVehicleRequest, restockVehicle, type SearchFilters } from '../api/client';
+import { fetchVehicles, purchaseVehicle, searchVehicles, createVehicleRequest, restockVehicle, deleteVehicleRequest, updateVehicleRequest, type SearchFilters, type Vehicle } from '../api/client';
 import { getUserRole } from '../utils/auth';
-import { Search, Plus, Tag, DollarSign, Package, Car, ShoppingCart, AlertCircle } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { Search, Plus, Tag, DollarSign, Package, Car, ShoppingCart, AlertCircle, Pencil, Trash2, X } from 'lucide-react';
 
 export default function Dashboard() {
   const queryClient = useQueryClient();
   const isAdmin = getUserRole() === 'ADMIN';
+  const { addToCart, cartItems } = useCart();
 
   const [make, setMake] = useState('');
   const [minPrice, setMinPrice] = useState('');
@@ -35,6 +37,16 @@ export default function Dashboard() {
   const [newQuantity, setNewQuantity] = useState('');
   const [addError, setAddError] = useState('');
 
+  // Edit Vehicle State
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [editMake, setEditMake] = useState('');
+  const [editModel, setEditModel] = useState('');
+  const [editYear, setEditYear] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [editPrice, setEditPrice] = useState('');
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editError, setEditError] = useState('');
+
   const { data: vehicles, isLoading, error } = useQuery({
     queryKey: ['vehicles', activeFilters],
     queryFn: () => (activeFilters ? searchVehicles(activeFilters) : fetchVehicles()),
@@ -51,6 +63,22 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setRestockAmounts((prev) => ({ ...prev, [variables.id]: 1 }));
     },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteVehicleRequest(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Parameters<typeof createVehicleRequest>[0]> }) =>
+      updateVehicleRequest(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setEditingVehicle(null);
+      setEditError('');
+    },
+    onError: (err: Error) => setEditError(err.message),
   });
 
   const createMutation = useMutation({
@@ -90,6 +118,39 @@ export default function Dashboard() {
     const amount = restockAmounts[id] ?? 1;
     if (amount > 0) {
       restockMutation.mutate({ id, amount });
+    }
+  }
+
+  function handleStartEdit(vehicle: Vehicle) {
+    setEditingVehicle(vehicle);
+    setEditMake(vehicle.make);
+    setEditModel(vehicle.model);
+    setEditYear(String(vehicle.year));
+    setEditCategory(vehicle.category);
+    setEditPrice(vehicle.price);
+    setEditQuantity(String(vehicle.quantity));
+    setEditError('');
+  }
+
+  function handleSaveEdit(e: FormEvent) {
+    e.preventDefault();
+    if (!editingVehicle) return;
+    updateMutation.mutate({
+      id: editingVehicle.id,
+      data: {
+        make: editMake,
+        model: editModel,
+        year: Number(editYear),
+        category: editCategory,
+        price: Number(editPrice),
+        quantity: Number(editQuantity),
+      },
+    });
+  }
+
+  function handleDelete(id: string) {
+    if (window.confirm('Are you sure you want to delete this vehicle from inventory?')) {
+      deleteMutation.mutate(id);
     }
   }
 
@@ -174,6 +235,64 @@ export default function Dashboard() {
         </form>
       )}
 
+      {/* Edit Vehicle Modal */}
+      {isAdmin && editingVehicle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
+          <form onSubmit={handleSaveEdit} className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-2xl space-y-6 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Pencil className="text-brand-500" size={20} /> Edit Vehicle Details
+              </h2>
+              <button type="button" onClick={() => setEditingVehicle(null)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Make</label>
+                <input value={editMake} onChange={(e) => setEditMake(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Model</label>
+                <input value={editModel} onChange={(e) => setEditModel(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Year</label>
+                <input type="number" value={editYear} onChange={(e) => setEditYear(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Category</label>
+                <input value={editCategory} onChange={(e) => setEditCategory(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Price ($)</label>
+                <input type="number" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Stock Quantity</label>
+                <input type="number" value={editQuantity} onChange={(e) => setEditQuantity(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 dark:text-white text-sm" required />
+              </div>
+            </div>
+
+            {editError && (
+              <div className="flex items-center gap-2 text-red-500 bg-red-50 dark:bg-red-500/10 p-3 rounded-lg text-sm border border-red-100 dark:border-red-500/20">
+                <AlertCircle size={16} /> <p>{editError}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setEditingVehicle(null)} className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={updateMutation.isPending} className="px-5 py-2.5 bg-brand-600 hover:bg-brand-500 text-white rounded-xl text-sm font-medium transition-all shadow-md disabled:opacity-50">
+                {updateMutation.isPending ? 'Updating...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {/* Grid Content */}
       {isLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
@@ -208,10 +327,32 @@ export default function Dashboard() {
                     </h2>
                     <p className="text-lg text-slate-600 dark:text-slate-300">{vehicle.model}</p>
                   </div>
-                  <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 rounded-full text-xs font-semibold uppercase tracking-wide">
-                    <Tag size={12} />
-                    {vehicle.category}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-50 dark:bg-brand-500/10 text-brand-700 dark:text-brand-300 rounded-full text-xs font-semibold uppercase tracking-wide">
+                      <Tag size={12} />
+                      {vehicle.category}
+                    </span>
+                    {isAdmin && (
+                      <div className="flex items-center gap-1 ml-1">
+                        <button
+                          onClick={() => handleStartEdit(vehicle)}
+                          className="p-1.5 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          title="Edit vehicle"
+                          aria-label={`Edit ${vehicle.make} ${vehicle.model}`}
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(vehicle.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          title="Delete vehicle"
+                          aria-label={`Delete ${vehicle.make} ${vehicle.model}`}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-auto space-y-4 relative z-10">
@@ -249,22 +390,24 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  <button
-                    onClick={() => purchaseMutation.mutate(vehicle.id)}
-                    disabled={!inStock || purchaseMutation.isPending}
-                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-white bg-slate-900 hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-500 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 transition-all duration-300"
-                  >
-                    {purchaseMutation.isPending ? (
-                      'Processing...'
-                    ) : inStock ? (
-                      <>
-                        <ShoppingCart size={18} />
-                        Purchase Now
-                      </>
-                    ) : (
-                      'Sold Out'
-                    )}
-                  </button>
+                  {!isAdmin && (
+                    <button
+                      onClick={() => addToCart(vehicle)}
+                      disabled={!inStock}
+                      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-white bg-slate-900 hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-500 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-slate-800 disabled:text-slate-500 transition-all duration-300"
+                    >
+                      {inStock ? (
+                        <>
+                          <ShoppingCart size={18} />
+                          {cartItems.some((item) => item.vehicle.id === vehicle.id)
+                            ? 'Add More to Cart'
+                            : 'Add to Cart'}
+                        </>
+                      ) : (
+                        'Sold Out'
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             );

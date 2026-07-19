@@ -7,7 +7,7 @@ const router = Router();
 router.post('/', authenticate, create);
 router.get('/search', authenticate, search);
 router.get('/', authenticate, list);
-router.put('/:id', authenticate, update);
+router.put('/:id', authenticate, requireAdmin, update);
 router.delete('/:id', authenticate, requireAdmin, remove);  // admin-only per spec
 router.post('/:id/purchase', authenticate, purchase);
 router.post('/:id/restock', authenticate, requireAdmin, restock);

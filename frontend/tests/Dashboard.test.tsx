@@ -6,9 +6,15 @@ import Dashboard from '../src/pages/Dashboard';
 import * as apiClient from '../src/api/client';
 import { getUserRole } from '../src/utils/auth';
 
+import { CartProvider } from '../src/context/CartContext';
+
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient();
-  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <CartProvider>{ui}</CartProvider>
+    </QueryClientProvider>
+  );
 }
 
 describe('Dashboard', () => {
@@ -40,23 +46,21 @@ describe('Dashboard', () => {
     });
   });
 
-  it('should call purchaseVehicle when the purchase button is clicked', async () => {
-  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([
-    { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
-  ]);
-  const purchaseSpy = vi.spyOn(apiClient, 'purchaseVehicle').mockResolvedValue(
-    { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 4 }
-  );
+  it('should allow adding a vehicle to cart', async () => {
+    vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([
+      { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
+    ]);
 
-  renderWithProviders(<Dashboard />);
+    renderWithProviders(<Dashboard />);
 
-  const button = await screen.findByRole('button', { name: /purchase/i });
-  fireEvent.click(button);
+    const button = await screen.findByRole('button', { name: /add to cart/i });
+    expect(button).toBeInTheDocument();
+    fireEvent.click(button);
 
-  await waitFor(() => {
-    expect(purchaseSpy).toHaveBeenCalledWith('1');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /add more to cart/i })).toBeInTheDocument();
+    });
   });
-});
 
   it('should call searchVehicles with the make filter when the search form is submitted', async () => {
   vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);

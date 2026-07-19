@@ -19,7 +19,8 @@ describe('Register page', () => {
   it('should render email and password inputs and a submit button', () => {
     renderWithProviders(<Register />);
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /register/i })).toBeInTheDocument();
   });
 
@@ -27,7 +28,7 @@ describe('Register page', () => {
     renderWithProviders(<Register />);
     fireEvent.click(screen.getByRole('button', { name: /register/i }));
     await waitFor(() => {
-      expect(screen.getByText(/email and password are required/i)).toBeInTheDocument();
+      expect(screen.getByText(/all fields are required/i)).toBeInTheDocument();
     });
   });
 
@@ -36,7 +37,8 @@ describe('Register page', () => {
     renderWithProviders(<Register />);
 
     fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'taken@example.com' } });
-    fireEvent.change(screen.getByLabelText(/password/i), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: 'password123' } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: 'password123' } });
     fireEvent.click(screen.getByRole('button', { name: /register/i }));
 
     await waitFor(() => {
