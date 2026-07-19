@@ -34,7 +34,7 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /purchase/i })).toBeDisabled();
+      expect(screen.getByRole('button', { name: /sold out/i })).toBeDisabled();
     });
   });
 
@@ -64,8 +64,8 @@ describe('Dashboard', () => {
 
   renderWithProviders(<Dashboard />);
 
-  fireEvent.change(await screen.findByLabelText(/search by make/i), { target: { value: 'Honda' } });
-  fireEvent.click(screen.getByRole('button', { name: /search/i }));
+  fireEvent.change(await screen.findByPlaceholderText(/search make.../i), { target: { value: 'Honda' } });
+  fireEvent.click(screen.getByRole('button', { name: /filter/i }));
 
   await waitFor(() => {
     expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda', minPrice: '', maxPrice: '' });
