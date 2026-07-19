@@ -46,7 +46,6 @@ export default function Dashboard() {
   const [make, setMake] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [activeFilters, setActiveFilters] = useState<SearchFilters | null>(null);
   const [restockAmounts, setRestockAmounts] = useState<Record<string, number>>({});
   const [selectedVehicleForSpecs, setSelectedVehicleForSpecs] = useState<Vehicle | null>(null);
@@ -225,14 +224,7 @@ export default function Dashboard() {
   const totalUnits = vehicles?.reduce((sum, v) => sum + v.quantity, 0) || 0;
   const alertCount = vehicles?.filter((v) => v.quantity <= 3).length || 0;
 
-  // Filter vehicles visually if category pill selected
-  const displayedVehicles = vehicles?.filter((v) => {
-    if (selectedCategory === 'ALL') return true;
-    return (
-      v.category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-      v.make.toLowerCase().includes(selectedCategory.toLowerCase())
-    );
-  });
+  const displayedVehicles = vehicles;
 
   return (
     <div className="flex flex-col gap-8 pb-12">
@@ -301,13 +293,13 @@ export default function Dashboard() {
       )}
 
       {/* 3. Search Bar & Top Control Bar */}
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
           <form onSubmit={handleSearch} className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <div className="relative flex-1 sm:flex-none min-w-[220px]">
+            <div className="relative flex-1 sm:flex-none min-w-[260px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
-                placeholder="Search make..."
+                placeholder="Search make, model, year, category..."
                 value={make}
                 onChange={(e) => setMake(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all dark:text-white placeholder:text-slate-400 text-sm"
@@ -344,28 +336,50 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* 4. Quick Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          <span className="text-xs font-semibold text-slate-400 flex items-center gap-1 mr-1">
-            <SlidersHorizontal size={14} /> Category:
-          </span>
-          {CATEGORY_PILLS.map((cat) => {
-            const isActive = selectedCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => handleCategoryPillClick(cat)}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm ${
-                  isActive
-                    ? 'bg-brand-600 text-white shadow-brand-500/20 scale-105'
-                    : 'bg-white/70 dark:bg-slate-900/70 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                {cat}
-              </button>
-            );
-          })}
-        </div>
+        {/* Active Filter Tags / Pills (Like in Photo) */}
+        {(make || minPrice || maxPrice) && (
+          <div className="flex flex-wrap items-center gap-2 px-1 animate-in fade-in duration-200">
+            {make && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100/90 dark:bg-amber-900/40 text-amber-900 dark:text-amber-200 rounded-full text-xs font-semibold border border-amber-200/80 dark:border-amber-800/60 shadow-xs">
+                Search: {make}
+                <button
+                  type="button"
+                  onClick={() => setMake('')}
+                  className="hover:text-amber-950 dark:hover:text-white transition-colors ml-0.5"
+                  title="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+            {minPrice && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100/90 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 rounded-full text-xs font-semibold border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
+                Min: ${minPrice}
+                <button
+                  type="button"
+                  onClick={() => setMinPrice('')}
+                  className="hover:text-emerald-950 dark:hover:text-white transition-colors ml-0.5"
+                  title="Clear min price"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+            {maxPrice && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100/90 dark:bg-emerald-900/40 text-emerald-900 dark:text-emerald-200 rounded-full text-xs font-semibold border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
+                Max: ${maxPrice}
+                <button
+                  type="button"
+                  onClick={() => setMaxPrice('')}
+                  className="hover:text-emerald-950 dark:hover:text-white transition-colors ml-0.5"
+                  title="Clear max price"
+                >
+                  <X size={13} />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Admin Add Form */}

@@ -31,19 +31,52 @@ interface SearchFilters {
 export async function findVehicles(filters: SearchFilters = {}) {
   const { make, model, category, minPrice, maxPrice } = filters;
 
-  return prisma.vehicle.findMany({
-    where: {
-      // Each condition is only included if the corresponding filter
-      // was actually provided — undefined fields are ignored by Prisma,
-      // so omitted filters simply don't narrow the query.
-      make: make ? { contains: make, mode: 'insensitive' } : undefined,
-      model: model ? { contains: model, mode: 'insensitive' } : undefined,
-      category: category ? { contains: category, mode: 'insensitive' } : undefined,
+  const conditions: any[] = [];
+
+  // Global search matching make, model, category, or year (tokenized multi-term search e.g. "2023 hon")
+  if (make) {
+    const tokens = make.trim().split(/\s+/).filter(Boolean);
+
+    for (const token of tokens) {
+      const matchingYears: number[] = [];
+      if (/^\d+$/.test(token)) {
+        for (let y = 1900; y <= 2100; y++) {
+          if (y.toString().includes(token)) {
+            matchingYears.push(y);
+          }
+        }
+      }
+
+      conditions.push({
+        OR: [
+          { make: { contains: token, mode: 'insensitive' } },
+          { model: { contains: token, mode: 'insensitive' } },
+          { category: { contains: token, mode: 'insensitive' } },
+          ...(matchingYears.length > 0 ? [{ year: { in: matchingYears } }] : []),
+        ],
+      });
+    }
+  }
+
+  if (model) {
+    conditions.push({ model: { contains: model, mode: 'insensitive' } });
+  }
+
+  if (category) {
+    conditions.push({ category: { contains: category, mode: 'insensitive' } });
+  }
+
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    conditions.push({
       price: {
         gte: minPrice ?? undefined,
         lte: maxPrice ?? undefined,
       },
-    },
+    });
+  }
+
+  return prisma.vehicle.findMany({
+    where: conditions.length > 0 ? { AND: conditions } : {},
     orderBy: {
       createdAt: 'asc',
     },
