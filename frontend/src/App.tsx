@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Cart from './pages/Cart';
 import { CartProvider, useCart } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
 import { getUserRole } from './utils/auth';
 
 function NavbarContent({ isDarkMode, setIsDarkMode, handleLogout, showNavButtons }: {
@@ -102,44 +103,46 @@ function App() {
   const showNavButtons = Boolean(token && location.pathname !== '/login' && location.pathname !== '/register');
 
   return (
-    <CartProvider>
-      <div className="min-h-screen flex flex-col transition-colors duration-300">
-        <NavbarContent
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
-          handleLogout={handleLogout}
-          showNavButtons={showNavButtons}
-        />
+    <ToastProvider>
+      <CartProvider>
+        <div className="min-h-screen flex flex-col transition-colors duration-300">
+          <NavbarContent
+            isDarkMode={isDarkMode}
+            setIsDarkMode={setIsDarkMode}
+            handleLogout={handleLogout}
+            showNavButtons={showNavButtons}
+          />
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-500/10 dark:bg-brand-500/5 blur-3xl pointer-events-none rounded-full" />
-          <div className="relative z-10">
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/cart"
-                element={
-                  <ProtectedRoute>
-                    <Cart />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </div>
-        </main>
-      </div>
-    </CartProvider>
+          {/* Main Content Area */}
+          <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-brand-500/10 dark:bg-brand-500/5 blur-3xl pointer-events-none rounded-full" />
+            <div className="relative z-10">
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/cart"
+                  element={
+                    <ProtectedRoute>
+                      <Cart />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </div>
+          </main>
+        </div>
+      </CartProvider>
+    </ToastProvider>
   );
 }
 

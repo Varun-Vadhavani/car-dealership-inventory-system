@@ -7,12 +7,19 @@ import * as apiClient from '../src/api/client';
 import { getUserRole } from '../src/utils/auth';
 
 import { CartProvider } from '../src/context/CartContext';
+import { ToastProvider } from '../src/context/ToastContext';
+
+vi.mock('../src/utils/auth', () => ({
+  getUserRole: vi.fn(),
+}));
 
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient();
   return render(
     <QueryClientProvider client={queryClient}>
-      <CartProvider>{ui}</CartProvider>
+      <ToastProvider>
+        <CartProvider>{ui}</CartProvider>
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
@@ -63,43 +70,37 @@ describe('Dashboard', () => {
   });
 
   it('should call searchVehicles with the make filter when the search form is submitted', async () => {
-  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
-  const searchSpy = vi.spyOn(apiClient, 'searchVehicles').mockResolvedValue([
-    { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
-  ]);
+    vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
+    const searchSpy = vi.spyOn(apiClient, 'searchVehicles').mockResolvedValue([
+      { id: '1', make: 'Honda', model: 'Civic', year: 2024, category: 'Sedan', price: '24999.99', quantity: 5 },
+    ]);
 
-  renderWithProviders(<Dashboard />);
+    renderWithProviders(<Dashboard />);
 
-  fireEvent.change(await screen.findByPlaceholderText(/search make.../i), { target: { value: 'Honda' } });
-  fireEvent.click(screen.getByRole('button', { name: /filter/i }));
+    fireEvent.change(await screen.findByPlaceholderText(/search make.../i), { target: { value: 'Honda' } });
+    fireEvent.click(screen.getByRole('button', { name: /filter/i }));
 
-  await waitFor(() => {
-    expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda', minPrice: '', maxPrice: '' });
+    await waitFor(() => {
+      expect(searchSpy).toHaveBeenCalledWith({ make: 'Honda' });
+    });
   });
-});
 
-vi.mock('../src/utils/auth', () => ({
-  getUserRole: vi.fn(),
-}));
+  it('should show the Add Vehicle form only for admins', async () => {
+    vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
+    vi.mocked(getUserRole).mockReturnValue('ADMIN');
 
-// ...inside the describe block:
+    renderWithProviders(<Dashboard />);
 
-it('should show the Add Vehicle form only for admins', async () => {
-  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
-  vi.mocked(getUserRole).mockReturnValue('ADMIN');
+    expect(await screen.findByRole('button', { name: /add vehicle/i })).toBeInTheDocument();
+  });
 
-  renderWithProviders(<Dashboard />);
+  it('should NOT show the Add Vehicle form for regular users', async () => {
+    vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
+    vi.mocked(getUserRole).mockReturnValue('USER');
 
-  expect(await screen.findByRole('button', { name: /add vehicle/i })).toBeInTheDocument();
-});
+    renderWithProviders(<Dashboard />);
 
-it('should NOT show the Add Vehicle form for regular users', async () => {
-  vi.spyOn(apiClient, 'fetchVehicles').mockResolvedValue([]);
-  vi.mocked(getUserRole).mockReturnValue('USER');
-
-  renderWithProviders(<Dashboard />);
-
-  await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
-  expect(screen.queryByRole('button', { name: /add vehicle/i })).not.toBeInTheDocument();
-});
+    await waitFor(() => expect(screen.queryByText(/loading/i)).not.toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: /add vehicle/i })).not.toBeInTheDocument();
+  });
 });
