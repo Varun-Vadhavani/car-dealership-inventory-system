@@ -3,12 +3,13 @@ import { Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-r
 import { Moon, Sun, CarFront, LogOut, ShoppingBag, User } from 'lucide-react';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Cart from './pages/Cart';
 import { CartProvider, useCart } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
-import { getUserRole, getUserEmail } from './utils/auth';
+import { getUserRole } from './utils/auth';
 
 function NavbarContent({ isDarkMode, setIsDarkMode, handleLogout, showNavButtons }: {
   isDarkMode: boolean;
@@ -18,7 +19,6 @@ function NavbarContent({ isDarkMode, setIsDarkMode, handleLogout, showNavButtons
 }) {
   const { totalCount } = useCart();
   const isAdmin = getUserRole() === 'ADMIN';
-  const userEmail = getUserEmail();
 
   return (
     <nav className="sticky top-0 z-50 w-full backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800 shadow-sm">
@@ -151,6 +151,8 @@ function App() {
               </Routes>
             </div>
           </main>
+
+          <Footer />
         </div>
       </CartProvider>
     </ToastProvider>
