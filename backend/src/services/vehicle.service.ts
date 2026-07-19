@@ -44,6 +44,9 @@ export async function findVehicles(filters: SearchFilters = {}) {
         lte: maxPrice ?? undefined,
       },
     },
+    orderBy: {
+      createdAt: 'asc',
+    },
   });
 }
 

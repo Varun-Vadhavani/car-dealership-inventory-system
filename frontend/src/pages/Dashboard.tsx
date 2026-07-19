@@ -1,6 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchVehicles, purchaseVehicle, searchVehicles, createVehicleRequest, type SearchFilters } from '../api/client';
+import { fetchVehicles, purchaseVehicle, searchVehicles, createVehicleRequest, restockVehicle, type SearchFilters } from '../api/client';
 import { getUserRole } from '../utils/auth';
 import { Search, Plus, Tag, DollarSign, Package, Car, ShoppingCart, AlertCircle } from 'lucide-react';
 
@@ -12,22 +12,17 @@ export default function Dashboard() {
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [activeFilters, setActiveFilters] = useState<SearchFilters | null>(null);
+  const [restockAmounts, setRestockAmounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    // This is our "debounce". We wait 400ms after the user stops typing
-    // before we trigger the search. This prevents spamming the backend
-    // on every single keystroke.
     const handler = setTimeout(() => {
       if (make || minPrice || maxPrice) {
         setActiveFilters({ make, minPrice, maxPrice });
       } else {
-        // If all fields are empty, clear the active filters so it fetches all
         setActiveFilters(null);
       }
     }, 400);
 
-    // If the user types again before 400ms, the previous timer is cleared
-    // and a new one starts.
     return () => clearTimeout(handler);
   }, [make, minPrice, maxPrice]);
 
@@ -48,6 +43,14 @@ export default function Dashboard() {
   const purchaseMutation = useMutation({
     mutationFn: (id: string) => purchaseVehicle(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vehicles'] }),
+  });
+
+  const restockMutation = useMutation({
+    mutationFn: ({ id, amount }: { id: string; amount: number }) => restockVehicle(id, amount),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      setRestockAmounts((prev) => ({ ...prev, [variables.id]: 1 }));
+    },
   });
 
   const createMutation = useMutation({
@@ -81,6 +84,13 @@ export default function Dashboard() {
       price: Number(newPrice),
       quantity: Number(newQuantity),
     });
+  }
+
+  function handleRestock(id: string) {
+    const amount = restockAmounts[id] ?? 1;
+    if (amount > 0) {
+      restockMutation.mutate({ id, amount });
+    }
   }
 
   return (
@@ -216,6 +226,28 @@ export default function Dashboard() {
                       ${vehicle.price}
                     </div>
                   </div>
+
+                  {/* Admin Restock Section */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Qty"
+                        value={restockAmounts[vehicle.id] ?? 1}
+                        onChange={(e) => setRestockAmounts({ ...restockAmounts, [vehicle.id]: Number(e.target.value) })}
+                        className="w-16 px-2 py-1.5 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-white text-center outline-none focus:ring-1 focus:ring-brand-500"
+                      />
+                      <button
+                        onClick={() => handleRestock(vehicle.id)}
+                        disabled={restockMutation.isPending}
+                        className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                      >
+                        <Plus size={14} />
+                        Add Stock
+                      </button>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => purchaseMutation.mutate(vehicle.id)}

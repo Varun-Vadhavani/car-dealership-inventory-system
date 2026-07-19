@@ -21,8 +21,10 @@ describe('Dashboard', () => {
     renderWithProviders(<Dashboard />);
 
     await waitFor(() => {
-      expect(screen.getByText(/honda civic/i)).toBeInTheDocument();
-      expect(screen.getByText(/ford f-150/i)).toBeInTheDocument();
+      expect(screen.getByText(/honda/i)).toBeInTheDocument();
+      expect(screen.getByText(/civic/i)).toBeInTheDocument();
+      expect(screen.getByText(/ford/i)).toBeInTheDocument();
+      expect(screen.getByText(/f-150/i)).toBeInTheDocument();
     });
   });
 

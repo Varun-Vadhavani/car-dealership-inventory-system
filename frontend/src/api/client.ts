@@ -108,3 +108,16 @@ export async function createVehicleRequest(data: CreateVehicleInput): Promise<Ve
   }
   return response.json();
 }
+
+export async function restockVehicle(id: string, amount: number): Promise<Vehicle> {
+  const response = await fetch(`${API_BASE_URL}/vehicles/${id}/restock`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ amount }),
+  });
+  if (!response.ok) {
+    const body = await response.json();
+    throw new Error(body.error || 'Failed to restock vehicle');
+  }
+  return response.json();
+}
