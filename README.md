@@ -5,6 +5,8 @@ Test-Driven Development (TDD) technical assessment. It provides secure,
 role-based access for browsing and purchasing vehicles as a regular user, and
 full inventory management (add, update, delete, restock) as an admin.
 
+LIVE: https://car-dealership-inventory-system-one.vercel.app/
+
 ---
 
 ## Table of Contents
