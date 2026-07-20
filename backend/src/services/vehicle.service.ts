@@ -17,7 +17,7 @@ export async function createVehicle(data: CreateVehicleInput) {
   return prisma.vehicle.create({ data });
 }
 
-interface SearchFilters {
+export interface SearchFilters {
   make?: string;
   model?: string;
   category?: string;
