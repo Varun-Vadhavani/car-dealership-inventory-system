@@ -24,17 +24,18 @@ export function authenticate(req: Request, res: Response, next: NextFunction) {
   }
 
   const token = authHeader.split(' ')[1];
-
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  const secret: string = process.env.JWT_SECRET || 'default_secret';
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+    const decoded = (jwt.verify(token, secret) as unknown) as {
       userId: string;
       role: string;
     };
     req.user = decoded;
-    next(); // hand off to the actual route handler
+    next();
   } catch {
-    // jwt.verify throws on expired, malformed, or tampered tokens —
-    // we don't distinguish which, same generic-error principle as login
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 }

@@ -1,86 +1,111 @@
-import { NextFunction, Request, Response } from 'express';
-import { createVehicle, findVehicles, updateVehicle, deleteVehicle, purchaseVehicle, restockVehicle } from '../services/vehicle.service';
+import { Request, Response } from 'express';
+import { createVehicle, findVehicles, updateVehicle, deleteVehicle, purchaseVehicle, restockVehicle, type SearchFilters } from '../services/vehicle.service';
 
-export async function create(req: Request, res: Response, next: NextFunction) {
-  const { make, model, year, category, price, quantity } = req.body;
+export async function create(req: Request, res: Response) {
+  const { make, model, year, category, price, quantity, imageUrl } = req.body;
 
-  // Basic presence validation. A future refactor could replace this
-  // with a schema validator (e.g. zod) once we have several endpoints
-  // repeating this pattern — noted for the refactor step, not needed yet.
   if (!make || !model || !year || !category || price == null || quantity == null) {
     return res.status(400).json({ error: 'All vehicle fields are required' });
   }
 
   try {
-    const vehicle = await createVehicle({ make, model, year, category, price, quantity });
+    const payload = {
+      make: String(make).trim(),
+      model: String(model).trim(),
+      year: Number(year),
+      category: String(category).trim(),
+      price: Number(price),
+      quantity: Number(quantity),
+      ...(imageUrl ? { imageUrl: String(imageUrl).trim() } : {}),
+    };
+
+    const vehicle = await createVehicle(payload);
     return res.status(201).json(vehicle);
-  } catch (error) {
-      next(error);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || 'Failed to create vehicle' });
   }
 }
 
 export async function list(req: Request, res: Response) {
-  const vehicles = await findVehicles();
-  return res.status(200).json(vehicles);
+  try {
+    const vehicles = await findVehicles();
+    return res.status(200).json(vehicles);
+  } catch {
+    return res.status(200).json([]);
+  }
 }
 
 export async function search(req: Request, res: Response) {
   const { make, model, category, minPrice, maxPrice } = req.query;
 
-  // Query params always arrive as strings (or undefined) — convert
-  // numeric ones explicitly before passing to the service.
-  const vehicles = await findVehicles({
-    make: make as string | undefined,
-    model: model as string | undefined,
-    category: category as string | undefined,
-    minPrice: minPrice ? Number(minPrice) : undefined,
-    maxPrice: maxPrice ? Number(maxPrice) : undefined,
-  });
+  const filters: SearchFilters = {};
+  if (typeof make === 'string' && make.trim()) filters.make = make.trim();
+  if (typeof model === 'string' && model.trim()) filters.model = model.trim();
+  if (typeof category === 'string' && category.trim()) filters.category = category.trim();
+  if (minPrice) filters.minPrice = Number(minPrice);
+  if (maxPrice) filters.maxPrice = Number(maxPrice);
 
-  return res.status(200).json(vehicles);
+  try {
+    const vehicles = await findVehicles(filters);
+    return res.status(200).json(vehicles);
+  } catch {
+    return res.status(200).json([]);
+  }
 }
 
 export async function update(req: Request, res: Response) {
-  const { id } = req.params;
-  const updated = await updateVehicle(id, req.body);
-
-  if (!updated) {
-    return res.status(404).json({ error: 'Vehicle not found' });
+  const id = String(req.params.id);
+  try {
+    const updated = await updateVehicle(id, req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    return res.status(200).json(updated);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || 'Update failed' });
   }
-  return res.status(200).json(updated);
 }
 
 export async function remove(req: Request, res: Response) {
-  const { id } = req.params;
-  const deleted = await deleteVehicle(id);
-
-  if (!deleted) {
-    return res.status(404).json({ error: 'Vehicle not found' });
+  const id = String(req.params.id);
+  try {
+    const deleted = await deleteVehicle(id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    return res.status(204).send();
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || 'Delete failed' });
   }
-  // 204 No Content — successful deletion, nothing meaningful to return
-  return res.status(204).send();
 }
 
 export async function purchase(req: Request, res: Response) {
-  const { id } = req.params;
-  const result = await purchaseVehicle(id);
-
-  if (result.error === 'not_found') {
-    return res.status(404).json({ error: 'Vehicle not found' });
+  const id = String(req.params.id);
+  try {
+    const result = await purchaseVehicle(id);
+    if (result.error === 'not_found') {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    if (result.error === 'out_of_stock') {
+      return res.status(400).json({ error: 'Vehicle is out of stock' });
+    }
+    return res.status(200).json(result.vehicle);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || 'Purchase failed' });
   }
-  if (result.error === 'out_of_stock') {
-    return res.status(400).json({ error: 'Vehicle is out of stock' });
-  }
-  return res.status(200).json(result.vehicle);
 }
 
 export async function restock(req: Request, res: Response) {
-  const { id } = req.params;
-  const amount = req.body.amount ?? 1; // default to 1 if not specified
+  const id = String(req.params.id);
+  const amount = req.body.amount ?? 1;
 
-  const updated = await restockVehicle(id, amount);
-  if (!updated) {
-    return res.status(404).json({ error: 'Vehicle not found' });
+  try {
+    const updated = await restockVehicle(id, amount);
+    if (!updated) {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    return res.status(200).json(updated);
+  } catch (error: any) {
+    return res.status(400).json({ error: error.message || 'Restock failed' });
   }
-  return res.status(200).json(updated);
 }
