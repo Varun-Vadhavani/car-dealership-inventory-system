@@ -2,15 +2,15 @@ import bcrypt from 'bcrypt';
 import prisma from '../lib/prisma';
 import jwt from 'jsonwebtoken';
 
-export async function registerUser(email: string, password: string) {
+export async function registerUser({ email, password, name }: { email: string; password: string; name?: string }) {
   const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await prisma.user.create({
-    data: { email, password: hashedPassword },
+  return prisma.user.create({
+    data: {
+      email,
+      password: hashedPassword,
+      name: name?.trim() || null,
+    },
   });
-
-  const { password: _password, ...safeUser } = user;
-  return safeUser;
 }
 
 // Verifies credentials and issues a signed JWT on success.
@@ -34,7 +34,12 @@ export async function loginUser(email: string, password: string) {
   // Payload kept minimal and non-sensitive: just enough to identify
   // the user and check permissions later via auth middleware.
   const token = jwt.sign(
-    { userId: user.id, email: user.email, role: user.role },
+  { 
+    userId: user.id, 
+    email: user.email, 
+    name: user.name || user.email.split('@')[0], // Fallback to email username if name is empty
+    role: user.role 
+  },
     process.env.JWT_SECRET as string,
     { expiresIn: '1h' } // short-lived token; forces re-login after expiry
   );

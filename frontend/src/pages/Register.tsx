@@ -1,42 +1,50 @@
-import { useState, type FormEvent } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
-import { registerRequest } from '../api/client';
-import { Mail, Lock, UserPlus, AlertCircle } from 'lucide-react';
+import { useState, type FormEvent } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { registerRequest } from "../api/client";
+import { Mail, Lock, UserPlus, AlertCircle, User } from "lucide-react";
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [validationError, setValidationError] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [validationError, setValidationError] = useState("");
   const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) =>
-      registerRequest(email, password),
-    onSuccess: () => navigate('/login'),
+    mutationFn: ({
+      email,
+      password,
+      name,
+    }: {
+      email: string;
+      password: string;
+      name?: string;
+    }) => registerRequest(email, password, name),
+    onSuccess: () => navigate("/login"),
   });
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!email || !password || !confirmPassword) {
-      setValidationError('All fields are required');
+      setValidationError("All fields are required");
       return;
     }
     if (password !== confirmPassword) {
-      setValidationError('Passwords do not match');
+      setValidationError("Passwords do not match");
       return;
     }
-    setValidationError('');
-    mutation.mutate({ email, password });
+    setValidationError("");
+    mutation.mutate({ email, password, name });
   }
 
-  const apiError = mutation.error instanceof Error ? mutation.error.message : '';
+  const apiError =
+    mutation.error instanceof Error ? mutation.error.message : "";
 
   return (
     <div className="w-full max-w-md mx-auto mt-12 sm:mt-24 perspective-1000">
       <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-2xl rounded-3xl p-8 sm:p-10 transform transition-all duration-500 hover:shadow-brand-500/10">
-        
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-brand-600 dark:from-white dark:to-brand-400">
             Create Account
@@ -47,6 +55,21 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-500 transition-colors">
+              <User size={18} />
+            </div>
+            <input
+              id="name"
+              type="text"
+              aria-label="User Name"
+              placeholder="User Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500/50 focus:border-brand-500 outline-none transition-all dark:text-white placeholder:text-slate-400"
+            />
+          </div>
+
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-brand-500 transition-colors">
               <Mail size={18} />
@@ -105,10 +128,15 @@ export default function Register() {
             className="group relative w-full flex justify-center py-3 px-4 border border-transparent rounded-xl text-sm font-medium text-white bg-gradient-to-r from-brand-600 to-brand-500 hover:from-brand-500 hover:to-brand-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-brand-500/30 transition-all duration-300 hover:shadow-brand-500/50 transform hover:-translate-y-0.5"
           >
             {mutation.isPending ? (
-              <span className="flex items-center gap-2">Creating account...</span>
+              <span className="flex items-center gap-2">
+                Creating account...
+              </span>
             ) : (
               <span className="flex items-center gap-2">
-                <UserPlus size={18} className="group-hover:scale-110 transition-transform" />
+                <UserPlus
+                  size={18}
+                  className="group-hover:scale-110 transition-transform"
+                />
                 Register
               </span>
             )}
@@ -116,8 +144,11 @@ export default function Register() {
         </form>
 
         <p className="mt-8 text-center text-sm text-slate-500 dark:text-slate-400">
-          Already have an account?{' '}
-          <Link to="/login" className="font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-500 transition-colors">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="font-semibold text-brand-600 dark:text-brand-400 hover:text-brand-500 transition-colors"
+          >
             Log in here
           </Link>
         </p>

@@ -2,14 +2,14 @@ import { NextFunction, Request, Response } from 'express';
 import { registerUser, loginUser } from '../services/auth.service';
 
 export async function register(req: Request, res: Response, next: NextFunction) {
-  const { email, password } = req.body;
+  const { email, password, name } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
   try {
-    const user = await registerUser(email, password);
+    const user = await registerUser({ email, password, name });
     return res.status(201).json(user);
   } catch (error) {
     // P2002 = Prisma's unique constraint violation code (duplicate email)
